@@ -9,6 +9,9 @@ from datetime import datetime
 import logging
 from pathlib import Path
 from data_processing import preprocess_data_for_training
+import numpy as np
+from matplotlib.figure import Figure
+from typing import Optional
 
 
 logger = logging.getLogger(__name__)
@@ -16,19 +19,22 @@ logging.basicConfig(level=logging.INFO,
                     format='[%(levelname)s] - %(funcName)s - %(message)s')
 
 
-def create_pipeline(model_params: dict) -> Pipeline:
+def create_pipeline(model_params: dict, seed: int = 42) -> Pipeline:
     '''
     Creates the sklearn Pipeline with an XGBoost classifier.
     '''
 
     logger.info("Creating the model pipeline...")
     model = Pipeline(steps=[
-        ('classifier', XGBClassifier(**model_params, random_state=RANDOM_SEED))
+        ('classifier', XGBClassifier(**model_params, random_state=seed))
     ])
     return model
 
 
-def fit_model(data_path: Path, model_path: Path, model_params: dict) -> None:
+def fit_model(data_path: Path, model_path: Path, model_params: dict,
+              name: str = 'auto', save_figure: bool = False, seed: int = 42,
+              columns_to_drop: Optional[list[str]] = None,
+              ) -> tuple[Figure, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     '''
     Fits the model and saves it along with its performance plots.
     '''
@@ -37,9 +43,10 @@ def fit_model(data_path: Path, model_path: Path, model_params: dict) -> None:
     data = pd.read_csv(data_path)
 
     logger.info("Preprocessing data...")
-    x_train, x_val, x_test, y_train, y_val, y_test = preprocess_data_for_training(data)
+    x_train, x_val, x_test, y_train, y_val, y_test = preprocess_data_for_training(data,
+                                                                                  columns_to_drop=columns_to_drop)
 
-    model = create_pipeline(model_params)
+    model = create_pipeline(model_params, seed=seed)
     logger.info("Training the model...")
     model.fit(x_train, y_train)
 
@@ -57,7 +64,7 @@ def fit_model(data_path: Path, model_path: Path, model_params: dict) -> None:
     ap_train = average_precision_score(y_train, y_train_probs)
     ap_val = average_precision_score(y_val,   y_val_probs)
 
-    plt.figure(figsize=(12, 5))
+    fig = plt.figure(figsize=(12, 5))
 
     plt.subplot(1, 2, 1)
     plt.plot(fpr_train, tpr_train, label=f'Train ROC AUC: {roc_auc_train:.2f}')
@@ -78,16 +85,21 @@ def fit_model(data_path: Path, model_path: Path, model_params: dict) -> None:
     plt.suptitle('Model Performance on Train and Val sets')
     plt.tight_layout()
 
-    logger.info(f"Saving performance plots in {model_path}...")
-    os.makedirs(model_path, exist_ok=True)
-    plot_path = os.path.join(model_path, f'push_{DATE}_performance.png')
-    plt.savefig(plot_path)
+    if save_figure:
+        logger.info(f"Saving performance plots in {model_path}...")
+        os.makedirs(model_path, exist_ok=True)
+        plot_path = os.path.join(model_path, f'push_{DATE}_performance.png')
+        plt.savefig(plot_path)
+
     plt.close()
 
     logger.info(f"Saving the trained model in {model_path}...")
-    joblib.dump(model, os.path.join(model_path, f'push_{DATE}.joblib'))
+    if name == 'auto':
+        joblib.dump(model, os.path.join(model_path, f'push_{DATE}.joblib'))
 
     logger.info("Model training and saving completed.")
+
+    return fig, recall_train, precision_train, recall_val, precision_val
 
 
 if __name__ == "__main__":

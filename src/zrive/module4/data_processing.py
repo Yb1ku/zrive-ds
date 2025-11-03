@@ -1,5 +1,6 @@
 import pandas as pd
 import logging
+from typing import Optional
 
 
 logger = logging.getLogger(__name__)
@@ -8,9 +9,11 @@ logging.basicConfig(level=logging.INFO,
 
 
 def preprocess_data_for_training(df: pd.DataFrame,
-                                 min_items: int = 5) -> tuple[pd.DataFrame, pd.DataFrame,
-                                                              pd.DataFrame, pd.DataFrame,
-                                                              pd.DataFrame, pd.DataFrame]:
+                                 min_items: int = 5,
+                                 columns_to_drop: Optional[list[str]] = None
+                                 ) -> tuple[pd.DataFrame, pd.DataFrame,
+                                            pd.DataFrame, pd.DataFrame,
+                                            pd.DataFrame, pd.DataFrame]:
     '''
     Preprocesses the DataFrame to get the data ready for modeling.
     '''
@@ -31,6 +34,12 @@ def preprocess_data_for_training(df: pd.DataFrame,
     x_train.drop(columns=categorical_cols, inplace=True)
     x_val.drop(columns=categorical_cols, inplace=True)
     x_test.drop(columns=categorical_cols, inplace=True)
+
+    if columns_to_drop:
+        logger.info(f"Dropping additional columns: {columns_to_drop}...")
+        x_train.drop(columns=columns_to_drop, inplace=True)
+        x_val.drop(columns=columns_to_drop, inplace=True)
+        x_test.drop(columns=columns_to_drop, inplace=True)
 
     return x_train, x_val, x_test, y_train, y_val, y_test
 
