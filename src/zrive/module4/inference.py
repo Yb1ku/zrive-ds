@@ -14,8 +14,14 @@ logging.basicConfig(level=logging.INFO,
 
 def convert_request_to_dataframe(req: Any) -> tuple[pd.DataFrame, list]:
     '''
-    Converts a request (dict or list of record dicts) to a
-    pandas DataFrame and returns a list of user_ids.
+    Converts the incoming request to a pandas DataFrame.
+
+    :param req: Incoming request data (can be dict or list of dicts).
+    :type req: Any
+
+    :returns:
+        - **df** (*pd.DataFrame*) - DataFrame constructed from the request data.
+        - **user_ids** (*list*) - List of user IDs extracted from the DataFrame
     '''
 
     logger.info("Converting request dictionary to DataFrame...")
@@ -40,6 +46,12 @@ def convert_request_to_dataframe(req: Any) -> tuple[pd.DataFrame, list]:
 def load_model(model_path: Path) -> Pipeline:
     '''
     Loads a saved model from the specified path.
+
+    :param model_path: Path to the saved model file.
+    :type model_path: Path
+
+    :returns:
+        - **model** (*sklearn.pipeline.Pipeline*) - The loaded model.
     '''
 
     logger.info(f"Loading model from {model_path}...")
@@ -50,26 +62,30 @@ def load_model(model_path: Path) -> Pipeline:
 def predict(model: Pipeline, df: pd.DataFrame, user_ids: list) -> dict:
     '''
     Makes a prediction using the provided model and DataFrame.
-    '''
-    try:
-        logger.info("Making predictions...")
-        processed_df = process_data_for_inference(df)
-        predictions = model.predict(processed_df)
-        logger.info("Predictions made successfully.")
-        json_predictions = {}
-        for user in range(len(predictions)):
-            json_predictions[user_ids[user]] = predictions[user]
 
-        json_response = {
-            'statusCode': 200,
-            'body': json_predictions
-        }
-    except Exception as e:
-        logger.error(f"Error during prediction: {e}")
-        json_response = {
-            'statusCode': 500,
-            'body': f"Error during prediction: {e}"
-        }
+    :param model: Trained sklearn Pipeline model.
+    :type model: Pipeline
+    :param df: Input DataFrame for prediction.
+    :type df: pd.DataFrame
+    :param user_ids: List of user IDs corresponding to the DataFrame rows.
+    :type user_ids: list
+
+    :returns:
+        - **json_response** (*dict*) - Dictionary containing status code and predictions.
+    '''
+    logger.info("Making predictions...")
+    processed_df = process_data_for_inference(df)
+    predictions = model.predict(processed_df)
+    logger.info("Predictions made successfully.")
+
+    json_predictions = {}
+    for user in range(len(predictions)):
+        json_predictions[user_ids[user]] = predictions[user]
+
+    json_response = {
+        'statusCode': 200,
+        'body': json_predictions
+    }
 
     return json_response
 

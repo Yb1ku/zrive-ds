@@ -47,6 +47,12 @@ def preprocess_data_for_training(df: pd.DataFrame,
 def process_data_for_inference(df: pd.DataFrame) -> pd.DataFrame:
     '''
     Processes the DataFrame for inference.
+
+    :param df: Input DataFrame.
+    :type df: pd.DataFrame
+
+    :returns:
+        - **df** (*pd.DataFrame*) - Processed DataFrame ready for inference.
     '''
     logger.info("Applying common transformations...")
     df, binary_cols, categorical_cols, numerical_cols = apply_common_transformations(df)
@@ -60,6 +66,15 @@ def process_data_for_inference(df: pd.DataFrame) -> pd.DataFrame:
 def apply_common_transformations(df: pd.DataFrame) -> tuple[pd.DataFrame, list, list, list]:
     '''
     Applies the transformations to the DataFrame.
+
+    :param df: Input DataFrame.
+    :type df: pd.DataFrame
+
+    :returns:
+        - **df** (*pd.DataFrame*) - Transformed DataFrame.
+        - **binary_cols** (*list*) - List of binary column names.
+        - **categorical_cols** (*list*) - List of categorical column names.
+        - **numerical_cols** (*list*) - List of numerical column names.
     '''
 
     df.drop(columns=['variant_id', 'order_id', 'user_id', 'created_at', 'order_date'], inplace=True)
@@ -79,6 +94,23 @@ def train_test_val_split(df: pd.DataFrame, train_size: float = 0.7,
                                     pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     '''
     Performs a time-split on the DataFrame to make a 3-way split
+
+    :param df: Input DataFrame.
+    :type df: pd.DataFrame
+    :param train_size: Proportion of data to use for training.
+    :type train_size: float
+    :param val_size: Proportion of data to use for validation.
+    :type val_size: float
+    :param test_size: Proportion of data to use for testing.
+    :type test_size: float
+
+    :returns:
+        - **x_train** (*pd.DataFrame*) - Features for training set.
+        - **x_val** (*pd.DataFrame*) - Features for validation set.
+        - **x_test** (*pd.DataFrame*) - Features for test set.
+        - **y_train** (*pd.DataFrame*) - Labels for training set.
+        - **y_val** (*pd.DataFrame*) - Labels for validation set.
+        - **y_test** (*pd.DataFrame*) - Labels for test set.
     '''
 
     n = len(df)

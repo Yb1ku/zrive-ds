@@ -22,6 +22,18 @@ logging.basicConfig(level=logging.INFO,
 def create_pipeline(model_params: dict, seed: int = 42) -> Pipeline:
     '''
     Creates the sklearn Pipeline with an XGBoost classifier.
+
+    :param model_params: Dictionary of hyperparameters for the XGBoost classifier.
+    :type model_params: dict
+    :param seed: Random seed for reproducibility.
+    :type seed: int
+
+    :returns:
+        - **model** (*sklearn.pipeline.Pipeline*) - The pipeline created.
+
+    :notes:
+        - The pipeline only contains the XGBoost classifier as a step, labeled
+        as `classifier`. In order to access it, use `model.named_steps['classifier']`.
     '''
 
     logger.info("Creating the model pipeline...")
@@ -36,7 +48,40 @@ def fit_model(data_path: Path, model_path: Path, model_params: dict,
               columns_to_drop: Optional[list[str]] = None,
               ) -> tuple[Figure, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     '''
-    Fits the model and saves it along with its performance plots.
+    Fit, evaluate and save a model, optionally saving performance plots.
+
+    Loads a dataset from `data_path`, preprocesses it, trains a model using the hyperparameters
+    in 'model_params'. After that, it evaluates the model on training and validation sets, computing
+    ROC and Precision-Recall curves. If `save_figure` is True, it saves the performance plots.
+
+    :param data_path: Path to the CSV file containing the dataset.
+    :type data_path: Path
+    :param model_path: Directory path where the trained model and plots will be saved.
+    :type model_path: Path
+    :param model_params: Dictionary of hyperparameters for the model.
+    :type model_params: dict
+    :param name: Name identifier for the saved model file. If 'auto', the model will be saved with a timestamp.
+    :type name: str
+    :param save_figure: Whether to save the performance plots.
+    :type save_figure: bool
+    :param seed: Random seed for reproducibility.
+    :type seed: int
+    :param columns_to_drop: Optional list of column names to drop from the dataset before training.
+    :type columns_to_drop: Optional[list[str]]
+
+    :returns:
+        - **fig** (*matplotlib.pyplot.Figure*) - The figure containing the performance plots.
+        - **recall_train** (*np.ndarray*) - Recall values for the training set.
+        - **precision_train** (*np.ndarray*) - Precision values for the training set.
+        - **recall_val** (*np.ndarray*) - Recall values for the validation set.
+        - **precision_val** (*np.ndarray*) - Precision values for the validation set.
+
+        :notes:
+        - If name = 'auto', the model is saved with the format 'push_YYYY_MM_DD.joblib'.
+        - The performance plot is saved as 'push_YYYY_MM_DD_performance.png' in the same
+        directory as the model.
+        - This function does not use `columns_to_drop` in its code, it is used to pass it
+        as an argument for the `preprocess_data_for_training` function.
     '''
 
     logger.info("Loading data...")
@@ -96,8 +141,10 @@ def fit_model(data_path: Path, model_path: Path, model_params: dict,
     logger.info(f"Saving the trained model in {model_path}...")
     if name == 'auto':
         joblib.dump(model, os.path.join(model_path, f'push_{DATE}.joblib'))
+    else:
+        joblib.dump(model, os.path.join(model_path, f'{name}.joblib'))
 
-    logger.info("Model training and saving completed.")
+    logger.info(f"Model training and saving completed with name {name}.")
 
     return fig, recall_train, precision_train, recall_val, precision_val
 
@@ -116,4 +163,20 @@ if __name__ == "__main__":
         'max_depth': 8
     }
 
-    fit_model(DATA_PATH, MODEL_PATH, model_params)
+    fig, _, _, _, _ = fit_model(DATA_PATH, MODEL_PATH, model_params,
+                                name='random_test', save_figure=False,
+                                seed=RANDOM_SEED)
+
+'''
+EXPECTED OUTPUT:
+[INFO] - fit_model - Loading data...
+[INFO] - fit_model - Preprocessing data...
+[INFO] - preprocess_data_for_training - Filtering orders with at least 5 items...
+[INFO] - preprocess_data_for_training - Splitting data into train, validation, and test sets...
+[INFO] - preprocess_data_for_training - Applying common transformations...
+[INFO] - preprocess_data_for_training - Dropping categorical columns: ['product_type', 'vendor']...
+[INFO] - create_pipeline - Creating the model pipeline...
+[INFO] - fit_model - Training the model...
+[INFO] - fit_model - Saving the trained model in /home/ybiku/projects/zrive/src/zrive/models...
+[INFO] - fit_model - Model training and saving completed with name random_test.
+'''
